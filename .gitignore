@@ -1,2 +1,13 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
 cutnet_venv/
+
+# PyTorch checkpoints and model files
+
 saved_models/
+
