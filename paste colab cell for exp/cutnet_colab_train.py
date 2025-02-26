@@ -11,7 +11,24 @@ import glob
 from data_loader import RescaleT, RandomCrop, ToTensorLab, SalObjDataset
 from cutnet_model import CUTNET, CUTNETP
 
-# Define Binary Cross-Entropy Loss
+# ======= CHECK & SET DATASET PATHS =======
+base_dir = "/content/bk_removal/my_dataset"
+tra_image_dir = os.path.join(base_dir, "input_images")
+tra_label_dir = os.path.join(base_dir, "masks_images")
+
+if not os.path.exists(tra_image_dir):
+    raise FileNotFoundError(f"❌ '{tra_image_dir}' folder not found!")
+if not os.path.exists(tra_label_dir):
+    raise FileNotFoundError(f"❌ '{tra_label_dir}' folder not found!")
+
+# ======= SET MODEL SAVE PATH =======
+drive_save_dir = "/content/drive/MyDrive/cutnet_models/saved_models"
+os.makedirs(drive_save_dir, exist_ok=True)  # Ensure save directory exists
+
+model_name = 'u2net'  # Choose 'u2net' or 'u2netp'
+model_save_path = os.path.join(drive_save_dir, "my_train_model.pth")
+
+# ======= BINARY CROSS-ENTROPY LOSS =======
 bce_loss = nn.BCELoss(reduction='mean')
 
 def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
@@ -23,73 +40,63 @@ def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
     loss4 = bce_loss(d4, labels_v)
     loss5 = bce_loss(d5, labels_v)
     loss6 = bce_loss(d6, labels_v)
-    
-    loss = loss0 + loss1 + loss2 + loss3 + loss4 + loss5 + loss6
-    
-    print("Loss breakdown: ", [loss0.item(), loss1.item(), loss2.item(), loss3.item(), loss4.item(), loss5.item(), loss6.item()])
-    return loss0, loss
 
-# Set dataset directories
-model_name = 'u2net'  # Choose between 'u2net' and 'u2netp'
+    total_loss = loss0 + loss1 + loss2 + loss3 + loss4 + loss5 + loss6
+    return loss0, total_loss
 
-data_dir = os.path.join(os.getcwd(), 'my_dataset')
-tra_image_dir = 'input_images'
-tra_label_dir = 'masks_images'
-image_ext = ('.jpg', '.jpeg')
+# ======= LOAD TRAINING DATA =======
+image_ext = ('.jpg', '.jpeg', '.png')
 label_ext = '.png'
 
-# Set model save directory inside bk_removal/saved_models/
-model_dir = os.path.join(os.getcwd(), 'bk_removal', 'saved_models', model_name)
-os.makedirs(model_dir, exist_ok=True)  # Ensure directory exists
+# Get all training images
+tra_img_name_list = [img for ext in image_ext for img in glob.glob(os.path.join(tra_image_dir, '**', '*' + ext), recursive=True)]
 
-# Training parameters
-epoch_num = 100000
-batch_size_train = 2 #14
-train_num = 0
-
-# Load training images
-tra_img_name_list = [img for ext in image_ext for img in glob.glob(os.path.join(data_dir, tra_image_dir, '**', '*' + ext), recursive=True)]
-
-# Load corresponding masks
+# Get corresponding mask images
 tra_lbl_name_list = [
-    os.path.join(data_dir, tra_label_dir, os.path.splitext(os.path.relpath(img, os.path.join(data_dir, tra_image_dir)))[0] + label_ext)
+    os.path.join(tra_label_dir, os.path.splitext(os.path.relpath(img, tra_image_dir))[0] + label_ext)
     for img in tra_img_name_list
 ]
 
-print("---")
-print(f"Train images: {len(tra_img_name_list)}")
-print(f"Train labels: {len(tra_lbl_name_list)}")
-print("---")
+print("--- Dataset Loaded Successfully ---")
+print(f"✅ Train images found: {len(tra_img_name_list)}")
+print(f"✅ Train masks found: {len(tra_lbl_name_list)}")
+print("----------------------------------")
 
-train_num = len(tra_img_name_list)
+# ======= DEFINE DATASET & DATALOADER =======
+batch_size_train = 5  # Adjust based on GPU memory
 
-# Define dataset and dataloader
 salobj_dataset = SalObjDataset(
     img_name_list=tra_img_name_list,
     lbl_name_list=tra_lbl_name_list,
     transform=transforms.Compose([
         RescaleT(320),
         RandomCrop(288),
-        ToTensorLab(flag=0)]))
+        ToTensorLab(flag=0)
+    ])
+)
 
-salobj_dataloader = DataLoader(salobj_dataset, batch_size=batch_size_train, shuffle=True, num_workers=4)
+salobj_dataloader = DataLoader(salobj_dataset, batch_size=batch_size_train, shuffle=True, num_workers=2)
 
-# Initialize model
+# ======= MODEL INITIALIZATION =======
 net = CUTNET(3, 1) if model_name == 'u2net' else CUTNETP(3, 1)
 if torch.cuda.is_available():
     net.cuda()
+    print("🔥 Training on GPU")
+else:
+    print("⚠️ GPU not found, training on CPU")
 
-# Define optimizer
-print("--- Defining optimizer...")
+# ======= OPTIMIZER =======
 optimizer = optim.Adam(net.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
 
-# Training loop
-print("--- Start training...")
+# ======= TRAINING LOOP =======
+epoch_num = 100000
 ite_num = 0
 running_loss = 0.0
 running_tar_loss = 0.0
 ite_num4val = 0
 save_frq = 2000  # Save model every 2000 iterations
+
+print("🚀 Training started...")
 
 for epoch in range(epoch_num):
     net.train()
@@ -97,10 +104,9 @@ for epoch in range(epoch_num):
         ite_num += 1
         ite_num4val += 1
 
-        # Load data
         inputs, labels = data['image'], data['label']
         inputs, labels = inputs.float(), labels.float()
-        
+
         if torch.cuda.is_available():
             inputs_v, labels_v = Variable(inputs.cuda(), requires_grad=False), Variable(labels.cuda(), requires_grad=False)
         else:
@@ -122,15 +128,15 @@ for epoch in range(epoch_num):
 
         del d0, d1, d2, d3, d4, d5, d6, loss2, loss  # Free memory
 
-        print(f"[Epoch {epoch+1}/{epoch_num}, Batch {i+1}/{train_num}, Iter {ite_num}] Train Loss: {running_loss/ite_num4val:.4f}, Target Loss: {running_tar_loss/ite_num4val:.4f}")
+        print(f"[Epoch {epoch+1}, Iter {ite_num}] Loss: {running_loss/ite_num4val:.4f}, Target Loss: {running_tar_loss/ite_num4val:.4f}")
 
         # Save model periodically
         if ite_num % save_frq == 0:
-            model_save_path = os.path.join(model_dir, f"{model_name}_bce_itr_{ite_num}_train_{running_loss/ite_num4val:.3f}_tar_{running_tar_loss/ite_num4val:.3f}.pth")
             torch.save(net.state_dict(), model_save_path)
-            torch.save(net.state_dict(), os.path.join(model_dir, "my_train_model.pth"))  # Always save latest model
-            print(f"Model saved inside '{model_dir}' as my_train_model.pth")
+            print(f"✅ Model saved: {model_save_path}")
 
             running_loss = 0.0
             running_tar_loss = 0.0
             ite_num4val = 0
+
+print("🎉 Training Completed! Model saved in Google Drive.")

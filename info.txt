@@ -32,40 +32,58 @@
 ====================== Co lab setup ===========================
 cutnet_test.py
 ===============
-# 1st : Mount Drive: Add the following lines at the beginning of your code, before you try to use the model_dir variable:
-## in cell paste this
--- from google.colab import drive
--- drive.mount('/content/drive')
 
-Locate the model_dir variable: Find the line in your cutnet_test.py script where the model_dir variable is defined. It should look something like this:
+1. !git clone https://github.com/artsamir/bk_removal.git
+%cd bk_removal
 
-- model_dir = os.path.join(os.getcwd(), 'saved_models', 'u2net.pth') #or u2netp.pth
+2. from google.colab import drive
+drive.mount('/content/drive')
 
-Replace the path: Replace this line with the path to your model file in Google Drive, using os.path.join():
+3. !ls /content/drive/MyDrive/cutnet_models/saved_models
 
-- import os #make sure os is imported.
-- model_dir = "/content/drive/MyDrive/Colab Notebooks/saved_models/" #or where ever your saved_models folder is.
-- model_path = os.path.join(model_dir, "u2net.pth") #or u2netp.pth
+4. paste the in cell : ---> paste colab cell for exp/cutnet_colab_test.py
 
-# Modify the loading line: Change the line where you load the model to:
-# If you are using a GPU runtime, you can remove the map_location='cpu' part.
 
 ===================
 cutnet_train.py:
 ==================
 
-# Locate the model_dir variable: Find the line in your cutnet_train.py script where the model_dir variable is defined. It should look something like this:
+1. Check it first cutnet_test.py (1, 2, 3) done
 
-- model_dir = os.path.join(os.getcwd(), 'saved_models', model_name + os.sep)
+2. Paste it in cell (if masks_images given "false" the do below (3, 4, 5))
+dataset_path = "/content/bk_removal/my_dataset"
+input_images_path = os.path.join(dataset_path, "input_images")
+masks_images_path = os.path.join(dataset_path, "masks_images")
+image_ext = ('.jpg', '.jpeg', '.png')  # Add .png if needed
+label_ext = '.png'
 
-# Replace the path: Replace this line with the path to your model file in Google Drive, using os.path.join():
-- import os #make sure os is imported.
-- model_dir = "/content/drive/MyDrive/Colab Notebooks/saved_models/" #or where ever you want to save your models.
 
-# Modify the saving line: Change the lines where you save the model to:
-- torch.save(net.state_dict(), os.path.join(model_dir, f"{model_name}_bce_itr_{ite_num}_train_{running_loss / ite_num4val:.3f}_tar_{running_tar_loss / ite_num4val:.3f}.pth"))
-- torch.save(net.state_dict(), os.path.join(model_dir,"my_train_model.pth"))
+print("Dataset folder exists:", os.path.exists(dataset_path))
+print("Input images folder exists:", os.path.exists(input_images_path))
+print("Masks images folder exists:", os.path.exists(masks_images_path))
 
-# Mount Drive
-- from google.colab import drive
-- drive.mount('/content/drive')
+# List the files inside input_images and masks_images
+if os.path.exists(input_images_path):
+    print("Input images:", os.listdir(input_images_path))
+else:
+    print("❌ 'input_images' folder is missing!")
+
+if os.path.exists(masks_images_path):
+    print("Masks images:", os.listdir(masks_images_path))
+else:
+    print("❌ 'masks_images' folder is missing!")
+
+
+
+3. os.makedirs("/content/bk_removal/my_dataset/masks_images", exist_ok=True)
+print("✅ Created missing 'masks_images' folder!")
+
+4. from google.colab import files
+uploaded = files.upload()  # Select multiple mask images
+
+
+5. import shutil
+for filename in uploaded.keys():
+    shutil.move(filename, "/content/bk_removal/my_dataset/masks_images/")
+
+6. paste it in cell : find --> paste colab cell for exp/cutnet_colab_test.py
