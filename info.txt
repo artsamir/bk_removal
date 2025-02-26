@@ -1,27 +1,71 @@
-# pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+- pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
-# contourpy>=1.3.1
-# cycler>=0.12.1
-# filelock>=3.13.1
-# fonttools>=4.56.0
-# fsspec>=2024.6.1
-# imageio>=2.37.0
-# Jinja2>=3.1.4
-# kiwisolver>=1.4.8
-# lazy_loader>=0.4
-# MarkupSafe>=3.0.2
-# matplotlib>=3.10.0
-# mpmath>=1.3.0
-# networkx>=3.3
-# numpy>=2.1.2
-# packaging>=24.2
-# pillow>=11.0.0
-# pyparsing>=3.2.1
-# python-dateutil>=2.9.0.post0
-# scikit-image>=0.25.2
-# scipy>=1.15.2
-# setuptools>=70.2.0
-# six>=1.17.0
-# sympy>=1.13.1
-# tifffile>=2025.2.18
-# typing_extensions>=4.12.2
+- contourpy>=1.3.1
+- requirements.txt 
+- cycler>=0.12.1
+- filelock>=3.13.1
+- fonttools>=4.56.0
+- fsspec>=2024.6.1
+- imageio>=2.37.0
+- Jinja2>=3.1.4
+- kiwisolver>=1.4.8
+- lazy_loader>=0.4
+- MarkupSafe>=3.0.2
+- matplotlib>=3.10.0
+- mpmath>=1.3.0
+- networkx>=3.3
+- numpy>=2.1.2
+- packaging>=24.2
+- pillow>=11.0.0
+- pyparsing>=3.2.1
+- python-dateutil>=2.9.0.post0
+- scikit-image>=0.25.2
+- scipy>=1.15.2
+- setuptools>=70.2.0
+- six>=1.17.0
+- sympy>=1.13.1
+- tifffile>=2025.2.18
+- typing_extensions>=4.12.2
+
+
+
+====================== Co lab setup ===========================
+cutnet_test.py
+===============
+# 1st : Mount Drive: Add the following lines at the beginning of your code, before you try to use the model_dir variable:
+## in cell paste this
+-- from google.colab import drive
+-- drive.mount('/content/drive')
+
+Locate the model_dir variable: Find the line in your cutnet_test.py script where the model_dir variable is defined. It should look something like this:
+
+- model_dir = os.path.join(os.getcwd(), 'saved_models', 'u2net.pth') #or u2netp.pth
+
+Replace the path: Replace this line with the path to your model file in Google Drive, using os.path.join():
+
+- import os #make sure os is imported.
+- model_dir = "/content/drive/MyDrive/Colab Notebooks/saved_models/" #or where ever your saved_models folder is.
+- model_path = os.path.join(model_dir, "u2net.pth") #or u2netp.pth
+
+# Modify the loading line: Change the line where you load the model to:
+# If you are using a GPU runtime, you can remove the map_location='cpu' part.
+
+===================
+cutnet_train.py:
+==================
+
+# Locate the model_dir variable: Find the line in your cutnet_train.py script where the model_dir variable is defined. It should look something like this:
+
+- model_dir = os.path.join(os.getcwd(), 'saved_models', model_name + os.sep)
+
+# Replace the path: Replace this line with the path to your model file in Google Drive, using os.path.join():
+- import os #make sure os is imported.
+- model_dir = "/content/drive/MyDrive/Colab Notebooks/saved_models/" #or where ever you want to save your models.
+
+# Modify the saving line: Change the lines where you save the model to:
+- torch.save(net.state_dict(), os.path.join(model_dir, f"{model_name}_bce_itr_{ite_num}_train_{running_loss / ite_num4val:.3f}_tar_{running_tar_loss / ite_num4val:.3f}.pth"))
+- torch.save(net.state_dict(), os.path.join(model_dir,"my_train_model.pth"))
+
+# Mount Drive
+- from google.colab import drive
+- drive.mount('/content/drive')

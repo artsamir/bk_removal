@@ -8,6 +8,6 @@ __pycache__/
 cutnet_venv/
 
 # PyTorch checkpoints and model files
-
+*.pth
 saved_models/
 
