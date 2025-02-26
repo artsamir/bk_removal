@@ -30,7 +30,7 @@ def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
     return loss0, loss
 
 # Set dataset directories
-model_name = 'u2net'  # Choose between 'u2net' and 'u2netp'
+model_name = 'cutnet'  # Choose between 'u2net' and 'u2netp'
 
 data_dir = os.path.join(os.getcwd(), 'my_dataset')
 tra_image_dir = 'input_images'
